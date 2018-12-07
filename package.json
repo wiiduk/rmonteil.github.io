@@ -1,21 +1,20 @@
 {
   "name": "blog",
-  "version": "1.0.0",
-  "description": "## Build TODO",
+  "author": "Robin Monteil",
+  "license": "ISC",
   "main": "index.js",
   "scripts": {
+    "dev": "",
     "build": "echo \"No build for now\" && exit 1",
     "deploy": "echo \"No deploy for now\" && exit 1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rmonteil/rmonteil.github.io.git"
-  },
-  "author": "Robin Monteil",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/rmonteil/rmonteil.github.io/issues"
-  },
-  "homepage": "https://github.com/rmonteil/rmonteil.github.io#readme"
+  "devDependencies": {
+    "browser-sync": "^2.26.3",
+    "gulp": "^4.0.0",
+    "gulp-replace": "^1.0.0",
+    "highlight.js": "^9.13.1",
+    "markdown-it": "^8.4.2",
+    "through2": "^3.0.0"
+  }
 }
