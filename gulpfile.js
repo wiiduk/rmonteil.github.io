@@ -18,13 +18,19 @@ const md = require('markdown-it')({
     }
 });
 
-// TODO gulp-uglify du html
-// TODO charger le langage highlight selon ce qui est présent dans le code
-// TODO Resize automatique des images
+// TODO Mettre le site sur www au lieu de blog (ovh + github)
+// TODO Commande pour publier le site
+// TODO Mettre les assets dans src
+// TODO Minification css
 // TODO Intégrer la date de rédaction de l'article dans le nom du fichier html, sans écraser si modification
-// TODO Afficher la date de dernière mise à jour de l'article dans le fichier html
 // TODO Faire en sorte que l'affichage des articles de la page d'accueil soit "sympa" = pas toujours les mêmes rectangles
+// TODO Resize automatique des images dans les différents formats voulus
+// TODO Optimisation des images pour réduire le poids
 // TODO Gérer des catégories d'articles. Avoir une page par catégorie qui liste les articles
+// TODO Audit SEO
+// TODO Afficher la date de dernière mise à jour de l'article dans le fichier html
+// TODO Possibilité de voir le site en offline (webworker)
+// TODO PWA ?
 
 // BrowserSync
 function browserSync(done) {
@@ -55,6 +61,19 @@ const md2html = (template) => {
             content: mdFileContent.replace(/^# (.+)\n+/m, ""),
         };
 
+        // Detect code blocks' languages
+        highlightLanguagesScripts = article.content.match(/^```(\w+)$/gmi);
+        highlightLanguagesScripts = highlightLanguagesScripts
+            .filter(function (item, pos, self) {
+                return self.indexOf(item) == pos;
+            })
+            .map((language) => {
+                language = language.replace("```", "");
+                language = `<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/languages/${language}.min.js"></script>`
+                return language;
+            });
+        highlightLanguagesScripts = highlightLanguagesScripts.join("");
+
         // Generate HTML file
         article.content = md.render(article.content);
         article.content = article.content.replace(/<h2>(.*)<\/h2>/gm, '</div><h3 class="mdl-cell mdl-cell--12-col mdl-typography--headline">$1</h3><div class="mdl-cell mdl-cell--8-col mdl-card__supporting-text no-padding ">');
@@ -64,14 +83,15 @@ const md2html = (template) => {
         article.content += "</div>";
 
         // Replace placeholders by article's data
-        template = template
+        const finalHtml = template
             .replace("@ARTICLE_TITLE@", article.title)
             .replace("@ARTICLE_IMAGE@", article.image)
-            .replace("@ARTICLE_CONTENT@", article.content);
+            .replace("@ARTICLE_CONTENT@", article.content)
+            .replace("@JS_HIGHLIGHT_LANGUAGES@", highlightLanguagesScripts);
 
         // Create buffer
         const htmlFile = chunk.clone();
-        htmlFile.contents = Buffer.from(template);
+        htmlFile.contents = Buffer.from(finalHtml);
         htmlFile.path = path.join(filePath.dir, filePath.name + ".html");
 
         cb(null, htmlFile);
@@ -111,11 +131,12 @@ const populateHomePage = () => {
 
 const watchFiles = () => {
     gulp.watch(
-        ["./src/articles/**/*.md", "./src/templates/**/*.html"],
+        ["./src/**/*.*"],
         { ignoreInitial: false },
         gulp.series(
             generateHtmlArticles,
             populateHomePage,
+            copyAssets,
             browserSyncReload
         )
     );
@@ -132,6 +153,11 @@ const minifyHtml = () => {
         .pipe(gulp.dest('./'));
 };
 
-gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage, minifyHtml));
+const copyAssets = () => {
+    return gulp.src("./src/assets/**/*.*", { base: "./src/assets" })
+        .pipe(gulp.dest("./assets/"));
+};
+
+gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, copyAssets));
 
 gulp.task("watch", gulp.parallel(watchFiles, browserSync));
