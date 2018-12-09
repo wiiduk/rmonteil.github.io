@@ -4,7 +4,7 @@ const path = require("path");
 const through = require('through2');
 const hljs = require('highlight.js');
 const replace = require('gulp-replace');
-const browserSync = require('browser-sync').create();
+const bs = require('browser-sync').create();
 const md = require('markdown-it')({
     highlight: function (str, lang) {
         if (lang && hljs.getLanguage(lang)) {
@@ -17,24 +17,76 @@ const md = require('markdown-it')({
     }
 });
 
-var md2html = () => {
+// TODO gulp-uglify du html
+// TODO charger le langage highlight selon ce qui est présent dans le code
+// TODO Resize automatique des images
+// TODO Intégrer la date de rédaction de l'article dans le nom du fichier html, sans écraser si modification
+// TODO Afficher la date de dernière mise à jour de l'article dans le fichier html
+
+// BrowserSync
+function browserSync(done) {
+    bs.init({
+        server: {
+            baseDir: "./"
+        },
+        port: 3000
+    });
+    done();
+}
+
+// BrowserSync Reload
+function browserSyncReload(done) {
+    bs.reload();
+    done();
+}
+
+const md2html = (template) => {
     return through.obj(function (chunk, _enc, cb) {
-        var fileContent = chunk.contents.toString("utf-8");
-        var filePath = path.parse(chunk.path);
-        var htmlFile = chunk.clone();
-        htmlFile.contents = Buffer.from(md.render(fileContent));
+        const filePath = path.parse(chunk.path);
+        const mdFileContent = chunk.contents.toString("utf-8");
+
+        // Extract article's data
+        const article = {
+            title: mdFileContent.match(/^# (.+)\n+/m)[1],
+            image: filePath.name + ".jpg",
+            content: mdFileContent.replace(/^# (.+)\n+/m, ""),
+        };
+
+        // Generate HTML file
+        article.content = md.render(article.content);
+        article.content = article.content.replace(/<h2>(.*)<\/h2>/gm, '</div><h3 class="mdl-cell mdl-cell--12-col mdl-typography--headline">$1</h3><div class="mdl-cell mdl-cell--8-col mdl-card__supporting-text no-padding ">');
+        if (article.content.substring(0, 3) !== "<h3") {
+            article.content = '<div class="mdl-cell mdl-cell--8-col mdl-card__supporting-text no-padding ">' + article.content;
+        }
+        article.content += "</div>";
+
+        // Replace placeholders by article's data
+        template = template
+            .replace("@ARTICLE_TITLE@", article.title)
+            .replace("@ARTICLE_IMAGE@", article.image)
+            .replace("@ARTICLE_CONTENT@", article.content);
+
+        // Create buffer
+        const htmlFile = chunk.clone();
+        htmlFile.contents = Buffer.from(template);
         htmlFile.path = path.join(filePath.dir, filePath.name + ".html");
 
         cb(null, htmlFile);
     });
 }
 
+const generateHtmlArticles = () => {
+    const template = fs.readFileSync("./src/templates/article.html").toString();
+
+    return gulp.src(path.join(__dirname, "src/articles/**/*.md"))
+        .pipe(md2html(template))
+        .pipe(gulp.dest("./articles"));
+};
+
 const populateHomePage = () => {
     const cardTpl = fs.readFileSync("./src/templates/components/article-card.html").toString();
-    console.log("cardTpl:", cardTpl);
     const articles = [];
     const articleFiles = fs.readdirSync(path.join(__dirname, "articles"));
-    console.log("articleFiles:", articleFiles);
     articleFiles.forEach(function (filename) {
         const filePath = path.join(__dirname, "articles", filename);
         const stats = fs.lstatSync(filePath);
@@ -42,51 +94,29 @@ const populateHomePage = () => {
             const fileContent = fs.readFileSync(filePath, 'utf-8').toString();
             articles.push(cardTpl
                 .replace("@ARTICLE_IMAGE@", path.join("./", filename).replace(".html", "") + ".jpg")
-                .replace("@ARTICLE_TITLE@", /<h1>(.+)<\/h1>\n/.exec(fileContent)[1])
+                .replace("@ARTICLE_TITLE@", /<h2 class="mdl\-card__title-text">(.+)<\/h2>/.exec(fileContent)[1])
                 .replace("@ARTICLE_CONTENT@", "")
                 .replace("@ARTICLE_PATH@", path.join("./articles/", filename))
             );
         }
     });
-    console.log("articles", articles);
 
     return gulp.src(path.join(__dirname, "src/templates/index.html"))
         .pipe(replace("@ARTICLES@", articles.join("")))
         .pipe(gulp.dest("./"));
-
-    // return gulp.src(path.join(__dirname, "./articles/**/*.html"))
-    //     .pipe(through.obj(function (chunk, _enc, cb) {
-    //         var fileContent = chunk.contents.toString("utf-8");
-    //         var filePath = path.parse(chunk.path);
-    //         var htmlFile = chunk.clone();
-    //         htmlFile.contents = Buffer.from(md.render(fileContent));
-    //         htmlFile.path = path.join(filePath.dir, filePath.name + ".html");
-
-    //         // Lister les articles créés
-    //         // Créer le template html de la vignette
-    //         // Récupérer le contenu de templates/index.html
-    //         // Coller tout ça dans ./index.html
-
-    //         cb(null, htmlFile);
-    //     }))
-    //     .pipe(replace("", ""))
-    //     .pipe(gulp.dest("./index.html"));
 };
 
-const generateHtmlFiles = () => {
-    return gulp.src(path.join(__dirname, "src/articles/**/*.md"))
-        .pipe(md2html())
-        .pipe(gulp.dest("./articles"))
+const watchFiles = () => {
+    gulp.watch(
+        ["./src/articles/**/*.md", "./src/templates/**/*.html"],
+        gulp.series(
+            generateHtmlArticles,
+            populateHomePage,
+            browserSyncReload
+        )
+    );
 };
 
-gulp.task("build", gulp.series(generateHtmlFiles, populateHomePage));
+gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage));
 
-gulp.task('browser-sync', function () {
-    browserSync.init({
-        server: {
-            baseDir: "./"
-        }
-    });
-
-    gulp.watch("*.html").on("change", browserSync.reload);
-});
+gulp.task("watch", gulp.parallel(watchFiles, browserSync));

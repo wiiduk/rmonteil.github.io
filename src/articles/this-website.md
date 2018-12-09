@@ -6,7 +6,6 @@ Voici une liste :
 - item 3
 
 ## Un sous-titre
-### Un sous-sous-titre
 Du code :
 ```json
 {"test": "truc"}
