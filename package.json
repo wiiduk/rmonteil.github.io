@@ -6,18 +6,19 @@
   "scripts": {
     "watch": "gulp watch",
     "build": "gulp build",
-    "deploy": "echo \"No deploy for now\" && exit 1",
+    "prepublish": "npm run build",
+    "publish": "./publish.sh",
+    "publish2": " && git checkout develop && git pull origin develop && git merge test-branch && git push origin develop",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "browser-sync": "^2.26.3",
     "gulp": "^4.0.0",
+    "gulp-htmlmin": "^5.0.1",
     "gulp-replace": "^1.0.0",
     "highlight.js": "^9.13.1",
     "markdown-it": "^8.4.2",
     "through2": "^3.0.0"
   },
-  "dependencies": {
-    "gulp-htmlmin": "^5.0.1"
-  }
+  "dependencies": {}
 }
