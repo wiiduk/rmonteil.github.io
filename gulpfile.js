@@ -19,7 +19,6 @@ const md = require('markdown-it')({
 });
 
 // TODO Mettre le site sur www au lieu de blog (ovh + github)
-// TODO Commande pour publier le site
 // TODO Mettre les assets dans src
 // TODO Minification css
 // TODO Intégrer la date de rédaction de l'article dans le nom du fichier html, sans écraser si modification
