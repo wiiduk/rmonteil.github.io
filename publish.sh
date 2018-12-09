@@ -1,9 +1,9 @@
 #!/bin/bash
 
 current_branch=$(git rev-parse --abbrev-ref HEAD)
+read -p "Commit message: " commit_message
 
 git add .
-read -p "Commit message: " commit_message
 git commit -m "$commit_message"
 git checkout develop
 git pull origin develop
