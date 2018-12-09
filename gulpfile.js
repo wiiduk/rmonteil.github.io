@@ -4,6 +4,7 @@ const path = require("path");
 const through = require('through2');
 const hljs = require('highlight.js');
 const replace = require('gulp-replace');
+const htmlmin = require('gulp-htmlmin');
 const bs = require('browser-sync').create();
 const md = require('markdown-it')({
     highlight: function (str, lang) {
@@ -22,6 +23,8 @@ const md = require('markdown-it')({
 // TODO Resize automatique des images
 // TODO Intégrer la date de rédaction de l'article dans le nom du fichier html, sans écraser si modification
 // TODO Afficher la date de dernière mise à jour de l'article dans le fichier html
+// TODO Faire en sorte que l'affichage des articles de la page d'accueil soit "sympa" = pas toujours les mêmes rectangles
+// TODO Gérer des catégories d'articles. Avoir une page par catégorie qui liste les articles
 
 // BrowserSync
 function browserSync(done) {
@@ -109,6 +112,7 @@ const populateHomePage = () => {
 const watchFiles = () => {
     gulp.watch(
         ["./src/articles/**/*.md", "./src/templates/**/*.html"],
+        { ignoreInitial: false },
         gulp.series(
             generateHtmlArticles,
             populateHomePage,
@@ -117,6 +121,17 @@ const watchFiles = () => {
     );
 };
 
-gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage));
+const minifyHtml = () => {
+    return gulp.src(["index.html", "articles/**/*.html"], { base: '.' })
+        .pipe(htmlmin({
+            collapseWhitespace: true,
+            minifyCSS: true,
+            minifyJS: true,
+            removeComments: true,
+        }))
+        .pipe(gulp.dest('./'));
+};
+
+gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage, minifyHtml));
 
 gulp.task("watch", gulp.parallel(watchFiles, browserSync));
