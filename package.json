@@ -8,7 +8,6 @@
     "build": "gulp build",
     "prepublish": "npm run build",
     "publish": "./publish.sh",
-    "publish2": " && git checkout develop && git pull origin develop && git merge test-branch && git push origin develop",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
