@@ -6,6 +6,9 @@ const hljs = require('highlight.js');
 const replace = require('gulp-replace');
 const htmlmin = require('gulp-htmlmin');
 const cleanCSS = require('gulp-clean-css');
+// const uglify = require('gulp-uglify');
+const imagemin = require('gulp-imagemin');
+const clean = require('gulp-clean');
 const sitemap = require('gulp-sitemap');
 const bs = require('browser-sync').create();
 const md = require('markdown-it')({
@@ -143,7 +146,7 @@ const watchFiles = () => {
 };
 
 const minifyHtml = () => {
-    return gulp.src(["index.html", "articles/**/*.html"], { base: '.' })
+    return gulp.src(["index.html", "articles/**/*.html"], { base: "." })
         .pipe(htmlmin({
             collapseWhitespace: true,
             minifyCSS: true,
@@ -154,14 +157,22 @@ const minifyHtml = () => {
 };
 
 const minifyCss = () => {
-    return gulp.src('./assets/css/*.css')
+    return gulp.src('./src/assets/css/*.css')
         .pipe(cleanCSS({ compatibility: 'ie8' }))
         .pipe(gulp.dest('./assets/css'));
 };
 
-const minifyJs = () => {
-
+const minifyImg = () => {
+    return gulp.src("./src/assets/img/*", { base: "./src" })
+        .pipe(imagemin()) // { verbose: true }
+        .pipe(gulp.dest('./'));
 };
+
+// const minifyJs = () => {
+//     return gulp.src('./assets/js/*.js'),
+//         uglify(),
+//         gulp.dest('./assets/js')
+// };
 
 const copyAssets = () => {
     return gulp.src("./src/assets/**/*.*", { base: "./src/assets" })
@@ -186,10 +197,25 @@ const generateSitemap = () => {
         .pipe(gulp.dest('./'));
 };
 
+const cleanDir = () => {
+    return gulp.src([
+        "./index.html",
+        "./sitemap.xml",
+        "./articles",
+        "./assets"
+    ], { read: false })
+        .pipe(clean());
+}
+
 gulp.task("build",
-    gulp.parallel(
-        gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, generateSitemap),
-        minifyCss
+    gulp.series(
+        cleanDir,
+        gulp.parallel(
+            gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, generateSitemap),
+            minifyCss,
+            // minifyJs,
+            minifyImg,
+        )
     )
 );
 
