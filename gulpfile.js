@@ -5,6 +5,7 @@ const through = require('through2');
 const hljs = require('highlight.js');
 const replace = require('gulp-replace');
 const htmlmin = require('gulp-htmlmin');
+const cleanCSS = require('gulp-clean-css');
 const sitemap = require('gulp-sitemap');
 const bs = require('browser-sync').create();
 const md = require('markdown-it')({
@@ -20,7 +21,6 @@ const md = require('markdown-it')({
 });
 
 // TODO Mettre le site sur www au lieu de blog (ovh + github)
-// TODO Mettre les assets dans src
 // TODO Minification css
 // TODO Intégrer la date de rédaction de l'article dans le nom du fichier html, sans écraser si modification
 // TODO Faire en sorte que l'affichage des articles de la page d'accueil soit "sympa" = pas toujours les mêmes rectangles
@@ -153,9 +153,19 @@ const minifyHtml = () => {
         .pipe(gulp.dest('./'));
 };
 
+const minifyCss = () => {
+    return gulp.src('./assets/css/*.css')
+        .pipe(cleanCSS({ compatibility: 'ie8' }))
+        .pipe(gulp.dest('./assets/css'));
+};
+
+const minifyJs = () => {
+
+};
+
 const copyAssets = () => {
     return gulp.src("./src/assets/**/*.*", { base: "./src/assets" })
-        .pipe(gulp.dest("./assets/"));
+        .pipe(gulp.dest("./assets"));
 };
 
 const generateSitemap = () => {
@@ -176,6 +186,11 @@ const generateSitemap = () => {
         .pipe(gulp.dest('./'));
 };
 
-gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, copyAssets, generateSitemap));
+gulp.task("build",
+    gulp.parallel(
+        gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, generateSitemap),
+        minifyCss
+    )
+);
 
 gulp.task("watch", gulp.parallel(watchFiles, browserSync));
