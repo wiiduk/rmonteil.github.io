@@ -5,6 +5,7 @@ const through = require('through2');
 const hljs = require('highlight.js');
 const replace = require('gulp-replace');
 const htmlmin = require('gulp-htmlmin');
+const sitemap = require('gulp-sitemap');
 const bs = require('browser-sync').create();
 const md = require('markdown-it')({
     highlight: function (str, lang) {
@@ -157,6 +158,24 @@ const copyAssets = () => {
         .pipe(gulp.dest("./assets/"));
 };
 
-gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, copyAssets));
+const generateSitemap = () => {
+    return gulp.src(["./index.html", "./articles/**/*.html"], {
+        read: false,
+        base: ".",
+    })
+        .pipe(sitemap({
+            siteUrl: 'https://www.robinmonteil.fr',
+            changefreq: "monthly",
+            priority: (...arg) => {
+                if (arg[1].includes("/articles/")) {
+                    return "1.0"
+                }
+                return "0.1";
+            }
+        }))
+        .pipe(gulp.dest('./'));
+};
+
+gulp.task("build", gulp.series(generateHtmlArticles, populateHomePage, minifyHtml, copyAssets, generateSitemap));
 
 gulp.task("watch", gulp.parallel(watchFiles, browserSync));
